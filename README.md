@@ -26,7 +26,12 @@ SELECT DISTINCT transaction_type
 FROM db_gold.gld_phone_pe_transactions;
 -------------------
 
-
+SELECT upi_transaction_id, COUNT(*) as count
+FROM db_gold.gld_phone_pe_transactions
+WHERE upi_transaction_id = 'CITIBA3C555B801F41F8E0539082BBA9AF8'
+AND data_dt BETWEEN '2021-02-15' AND '2021-02-28'
+GROUP BY upi_transaction_id
+HAVING count > 1;
 
 
 
