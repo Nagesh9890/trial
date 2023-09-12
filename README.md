@@ -57,6 +57,19 @@ SELECT * FROM db_gold.gld_phone_pe_transactions LIMIT 100;
 
 
 
+from pyspark.sql import SparkSession
+
+# Create a Spark session
+spark = SparkSession.builder \
+    .appName("View Top 100 Records") \
+    .enableHiveSupport() \
+    .getOrCreate()
+
+# Read the table from Hive
+df = spark.read.table("db_gold.gld_phone_pe_transactions")
+
+# Display the top 100 records
+df.limit(100).show()
 
 
 
