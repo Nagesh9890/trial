@@ -64,4 +64,21 @@ if specified_date_obj == last_date_of_month:
 else:
     print "{} is not the last day of the month. Job will not proceed.".format(specified_date)
 
+-----------------------
 
+ValueErrorTraceback (most recent call last)
+<ipython-input-16-f1c1d7d00f0c> in <module>()
+     19 
+     20 # Check if the specified date is the last day of the month
+---> 21 if specified_date_obj == last_date_of_month:
+     22     # Filter the data to get the last one month's data from the specified date
+     23     df_filtered = df.filter(datediff(specified_date_obj, col("data_date")) <= 30)
+
+/opt/cloudera/parcels/CDH-7.1.7-1.cdh7.1.7.p1000.24102687/lib/spark/python/pyspark/sql/column.pyc in __nonzero__(self)
+    688 
+    689     def __nonzero__(self):
+--> 690         raise ValueError("Cannot convert column into bool: please use '&' for 'and', '|' for 'or', "
+    691                          "'~' for 'not' when building DataFrame boolean expressions.")
+    692     __bool__ = __nonzero__
+
+ValueError: Cannot convert column into bool: please use '&' for 'and', '|' for 'or', '~' for 'not' when building DataFrame boolean expressions.
