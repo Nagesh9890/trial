@@ -33,7 +33,7 @@ AND data_dt BETWEEN '2021-02-15' AND '2021-02-28'
 GROUP BY upi_transaction_id
 HAVING count > 1;
 
-
+AnalysisException: Could not resolve column/field reference: 'count'
 
 
 
