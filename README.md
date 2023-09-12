@@ -6,10 +6,6 @@ SELECT * FROM db_gold.gld_phone_pe_transactions LIMIT 100;
 
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import last_day, month, year, col, current_date, datediff
-
-
-
-​from pyspark.sql import SparkSession
 from pyspark.sql.functions import last_day, datediff, current_date, col
 
 # Create a Spark session
