@@ -31,7 +31,8 @@ FROM db_gold.gld_phone_pe_transactions
 WHERE upi_transaction_id = 'CITIBA3C555B801F41F8E0539082BBA9AF8'
 AND data_dt BETWEEN '2021-02-15' AND '2021-02-28'
 GROUP BY upi_transaction_id
-HAVING count > 1;
+HAVING COUNT(*) > 1;
+
 
 AnalysisException: Could not resolve column/field reference: 'count'
 
