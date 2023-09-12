@@ -36,7 +36,7 @@ else:
 ----------------------------
 
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import last_day, datediff, lit, col
+from pyspark.sql.functions import last_day, datediff, lit, col, to_date
 
 # Create a Spark session
 spark = SparkSession.builder \
@@ -50,17 +50,18 @@ df = spark.createDataFrame(data, ["data_date"])
 # Specify any date you want to check against
 specified_date = "2023-09-30"  # Example date, you can change this
 
-# Convert the specified date to a column
-specified_date_col = lit(specified_date)
+# Convert the specified date to a date object
+specified_date_obj = to_date(lit(specified_date))
 
 # Collect the result of last_day function
-last_date_of_month = df.select(last_day(specified_date_col)).collect()[0][0]
+last_date_of_month = df.select(last_day(specified_date_obj)).collect()[0][0]
 
 # Check if the specified date is the last day of the month
-if specified_date == last_date_of_month:
+if specified_date_obj == last_date_of_month:
     # Filter the data to get the last one month's data from the specified date
-    df_filtered = df.filter(datediff(specified_date_col, col("data_date")) <= 30)
+    df_filtered = df.filter(datediff(specified_date_obj, col("data_date")) <= 30)
     df_filtered.show()
 else:
     print "{} is not the last day of the month. Job will not proceed.".format(specified_date)
+
 
