@@ -312,3 +312,35 @@ if specified_date_value == last_date_of_month:
     df_filtered.show()
 else:
     print "{} is not the last day of the month. Job will not proceed.".format(specified_date)
+
+
+#optimized one
+from pyspark.sql import functions as F
+
+def compute_aggregates(df, category_col, amount_col):
+    # Pivot on the category column to compute counts and sums for each category
+    agg_df = df.groupBy("account_number").pivot(category_col).agg(
+        F.count(amount_col).alias("count"),
+        F.sum(amount_col).alias("sum")
+    )
+    
+    # Rename columns to match the desired format
+    for category in df.select(category_col).distinct().rdd.flatMap(lambda x: x).collect():
+        agg_df = agg_df.withColumnRenamed(category + "_count", "count_" + category) \
+                      .withColumnRenamed(category + "_sum", "sum_" + category)
+    
+    return agg_df
+
+# Compute aggregates for category_level1 and category_level2
+agg_df1 = compute_aggregates(result_df, "category_level1", "payer_amount")
+agg_df2 = compute_aggregates(result_df, "category_level2", "payer_amount")
+
+# Join the two aggregated DataFrames
+final_agg_df = agg_df1.join(agg_df2, ["account_number"], "outer").fillna(0)
+
+# Join with unique account details
+unique_account_details = result_df.select("account_number", "account_holder_name", "account_ifsc", "account_type").distinct()
+final_df = unique_account_details.join(final_agg_df, ["account_number"], "left")
+
+# Display the result
+final_df.show()
