@@ -12,7 +12,7 @@ def compute_aggregates(df, category_col, amount_col):
         agg_df = agg_df.withColumnRenamed(category + "_count", "count_" + category) \
                       .withColumnRenamed(category + "_sum", "sum_" + category) \
                       .withColumn("type_" + category, 
-                                  F.when(F.col("sum_" + category) == 0, "Null")
+                                  F.when(F.col("sum_" + category) == 0, "No")
                                   .when(F.col("payee_account_type") == "SAVINGS", 
                                         F.when(F.col("sum_" + category) < 10000, "Low Value")
                                         .when((F.col("sum_" + category) >= 10000) & (F.col("sum_" + category) < 25000), "Medium Value")
@@ -21,7 +21,7 @@ def compute_aggregates(df, category_col, amount_col):
                                   .when(F.col("payee_account_type") == "CURRENT", 
                                         F.when(F.col("sum_" + category) < 10000, "Low Value")
                                         .when((F.col("sum_" + category) >= 10000) & (F.col("sum_" + category) < 25000), "Medium Value")
-                                        .when((F.col("sum_" + category) >= 25000) & (F.col("sum_" + category) < 50000), "High Value")
+                                        .when((F.col("sum_" + category) >= 25000) & (F.col("sum_" + category) < 50000000), "High Value")
                                         .otherwise("Low Value only"))
                                   .otherwise("Unknown Type"))
     
