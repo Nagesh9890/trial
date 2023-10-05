@@ -12,7 +12,7 @@ def compute_aggregates(df, category_col, amount_col):
         agg_df = agg_df.withColumnRenamed(category + "_count", "count_" + category) \
                       .withColumnRenamed(category + "_sum", "sum_" + category) \
                       .withColumn("type_" + category, 
-                                  F.when((F.col("count_" + category) == 0) | (F.col("sum_" + category).isNull() | (F.col("sum_" + category) == 0)), "No transactions")
+                                  F.when((F.col("count_" + category) == 0) | (F.col("sum_" + category).isNull()) | (F.col("sum_" + category) == 0), "No transactions")
                                   .when(F.col("payer_account_type") == "SAVINGS", 
                                         F.when(F.col("sum_" + category) < 10000, "Low Value")
                                         .when((F.col("sum_" + category) >= 10000) & (F.col("sum_" + category) < 25000), "Medium Value")
@@ -37,9 +37,19 @@ final_agg_df = agg_df1.join(agg_df2, ["payer_account_number", "payer_account_typ
 # Calculate the total transaction sum for each account
 total_sum_df = result_df.groupBy("payer_account_number").agg(F.sum("payer_amount").alias("total_transaction_sum"))
 
+# Calculate how many times each payer_account_number appears in payee_account_number and the sum of payee_amount
+appearance_df = result_df.groupBy("payee_account_number") \
+                         .agg(F.count("*").alias("appearance_count"), 
+                              F.sum("payee_amount").alias("appearance_sum"))
+
 # Join with unique account details 
 unique_account_details = result_df.select("payer_account_number", "account_holder_name", "account_ifsc", "payer_account_type","payee_account_type","payer_account_type").distinct()
-final_df = unique_account_details.join(final_agg_df, ["payer_account_number", "payer_account_type"], "left").join(total_sum_df, ["payer_account_number"], "left")
+final_df = unique_account_details.join(final_agg_df, ["payer_account_number", "payer_account_type"], "left") \
+                                 .join(total_sum_df, ["payer_account_number"], "left") \
+                                 .join(appearance_df, unique_account_details.payer_account_number == appearance_df.payee_account_number, "left") \
+                                 .drop("payee_account_number") \
+                                 .fillna(0)
 
 # Display the result
 final_df.show()
+
