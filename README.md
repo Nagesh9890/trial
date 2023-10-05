@@ -15,13 +15,15 @@ def compute_aggregates(df, category_col, amount_col):
         # Apply logic based on payee_account_type
         if df.filter(F.col("payee_account_type") == "SAVINGS").count() > 0:
             agg_df = agg_df.withColumn("type_" + category, 
-                                      F.when(F.col("sum_" + category) < 10000, "Low Value")
+                                      F.when(F.col("sum_" + category) == 0, "Null")
+                                      .when(F.col("sum_" + category) < 10000, "Low Value")
                                       .when((F.col("sum_" + category) >= 10000) & (F.col("sum_" + category) < 25000), "Medium Value")
                                       .when((F.col("sum_" + category) >= 25000) & (F.col("sum_" + category) < 50000), "High Value")
                                       .otherwise("Very High Value"))
         elif df.filter(F.col("payee_account_type") == "CURRENT").count() > 0:
             agg_df = agg_df.withColumn("type_" + category, 
-                                      F.when(F.col("sum_" + category) < 10000, "Low Value")
+                                      F.when(F.col("sum_" + category) == 0, "Null")
+                                      .when(F.col("sum_" + category) < 10000, "Low Value")
                                       .when((F.col("sum_" + category) >= 10000) & (F.col("sum_" + category) < 25000), "Medium Value")
                                       .when((F.col("sum_" + category) >= 25000) & (F.col("sum_" + category) < 50000), "High Value")
                                       .otherwise("Low Value only"))
