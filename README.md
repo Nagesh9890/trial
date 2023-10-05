@@ -35,12 +35,12 @@ agg_df2 = compute_aggregates(result_df, "category_level2", "payer_amount")
 final_agg_df = agg_df1.join(agg_df2, ["payer_account_number", "payer_account_type"], "outer").fillna(0) 
 
 # Calculate the total transaction sum for each account
-total_sum_df = result_df.groupBy("payer_account_number").agg(F.sum("payer_amount").alias("total_transaction_sum"))
+total_sum_df = result_df.groupBy("payer_account_number").agg(F.sum("payer_amount").alias("total_transaction_sum_paid_as_payer"))
 
 # Calculate how many times each payer_account_number appears in payee_account_number and the sum of payee_amount
 appearance_df = result_df.groupBy("payee_account_number") \
-                         .agg(F.count("*").alias("appearance_count"), 
-                              F.sum("payee_amount").alias("appearance_sum"))
+                         .agg(F.count("*").alias("as_a_payee_count"), 
+                              F.sum("payee_amount").alias("as_a_payee_sum_recieved"))
 
 # Join with unique account details 
 unique_account_details = result_df.select("payer_account_number", "account_holder_name", "account_ifsc", "payer_account_type","payee_account_type","payer_account_type").distinct()
@@ -52,4 +52,3 @@ final_df = unique_account_details.join(final_agg_df, ["payer_account_number", "p
 
 # Display the result
 final_df.show()
-
