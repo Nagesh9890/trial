@@ -1,66 +1,52 @@
-from pyspark.sql import functions as F
+Overview
+The code is an ML model that employs PySpark for processing and analyzing a dataset of transaction details. It calculates various aggregates and metrics, offering insights into the transaction behaviors of different bank accounts. The process is divided into several steps, each performing a specific task to transform and analyze the data.
 
-def compute_aggregates(df, category_col, amount_col):
-    # Pivot on the category column to compute counts and sums for each category
-    agg_df = df.groupBy("payer_account_number", "payer_account_type").pivot(category_col).agg(
-        F.count(amount_col).alias("count"),
-        F.sum(amount_col).alias("sum")
-    )
-    
-    # Rename columns and add value type column based on the sum
-    for category in df.select(category_col).distinct().rdd.flatMap(lambda x: x).collect():
-        agg_df = agg_df.withColumnRenamed(category + "_count", "count_" + category) \
-                      .withColumnRenamed(category + "_sum", "sum_" + category) \
-                      .withColumn("type_" + category, 
-                                  F.when((F.col("count_" + category) == 0) | (F.col("sum_" + category).isNull()) | (F.col("sum_" + category) == 0), "No transactions")
-                                  .when(F.col("payer_account_type") == "SAVINGS", 
-                                        F.when(F.col("sum_" + category) < 5000000, "10")
-                                        .when((F.col("sum_" + category) >= 5000000) & (F.col("sum_" + category) < 10000000), "9")
-                                        .when((F.col("sum_" + category) >= 10000000) & (F.col("sum_" + category) < 15000000), "8")
-                                        .when((F.col("sum_" + category) >= 15000000) & (F.col("sum_" + category) < 20000000), "7")
-                                        .when((F.col("sum_" + category) >= 20000000) & (F.col("sum_" + category) < 25000000), "6")
-                                        .when((F.col("sum_" + category) >= 25000000) & (F.col("sum_" + category) < 30000000), "5")
-                                        .when((F.col("sum_" + category) >= 30000000) & (F.col("sum_" + category) < 35000000), "4")
-                                        .when((F.col("sum_" + category) >= 35000000) & (F.col("sum_" + category) < 40000000), "3")
-                                        .when((F.col("sum_" + category) >= 40000000) & (F.col("sum_" + category) < 45000000), "2")
-                                        .otherwise("1"))
-                                  .when(F.col("payer_account_type") == "CURRENT", 
-                                        F.when(F.col("sum_" + category) < 15000000, "10")
-                                        .when((F.col("sum_" + category) >= 15000000) & (F.col("sum_" + category) < 30000000), "9")
-                                        .when((F.col("sum_" + category) >= 30000000) & (F.col("sum_" + category) < 45000000), "8")
-                                        .when((F.col("sum_" + category) >= 45000000) & (F.col("sum_" + category) < 60000000), "7")
-                                        .when((F.col("sum_" + category) >= 60000000) & (F.col("sum_" + category) < 75000000), "6")
-                                        .when((F.col("sum_" + category) >= 75000000) & (F.col("sum_" + category) < 90000000), "5")
-                                        .when((F.col("sum_" + category) >= 90000000) & (F.col("sum_" + category) < 105000000), "4")
-                                        .when((F.col("sum_" + category) >= 105000000) & (F.col("sum_" + category) < 120000000), "3")
-                                        .when((F.col("sum_" + category) >= 120000000) & (F.col("sum_" + category) < 135000000), "2")
-                                        .otherwise("1"))
-                                  .otherwise("Unknown Type"))
-    
-    return agg_df
+Note:
+This ML model is applied post-processing with the Phonepe multi-output classifier ML model, which categorizes transactions. It’s akin to the Sherloc ML model previously used, ensuring consistency and accuracy in transaction categorization.
 
-# Compute aggregates for category_level1 and category_level2 
-agg_df1 = compute_aggregates(result_df, "category_level1", "payer_amount")
-agg_df2 = compute_aggregates(result_df, "category_level2", "payer_amount")
+Step 1: Compute Aggregates Function
+The compute_aggregates function is central to this ML model, performing several tasks:
 
-# Join the two aggregated DataFrames 
-final_agg_df = agg_df1.join(agg_df2, ["payer_account_number", "payer_account_type"], "outer").fillna(0) 
+a. Grouping and Pivoting
+The data, categorized by the Phonepe multi-output classifier, is grouped by the payer's account number and account type. It’s then pivoted based on transaction categories, calculating the total count and sum for each category.
+b. Renaming and Adding Columns
+Columns are renamed for clarity, and a new column is added to classify the transaction sums into different types. This classification is based on the sum and count of transactions and varies according to the account type (SAVINGS or CURRENT).
+c. Classification Logic
+If there are no transactions, it’s labeled as "No transactions".
+For SAVINGS accounts, ten levels (from 10 to 1) are defined based on the transaction sum, with 10 representing the lowest and 1 the highest transaction sum range.
+For CURRENT accounts, a different set of transaction sum ranges is used to define the ten levels.
+If the account type is neither SAVINGS nor CURRENT, it’s labeled as "Unknown Type".
+Step 2: Applying the Compute Aggregates Function
+The function is applied twice to calculate aggregates for two different category levels (category_level1 and category_level2), each derived from the initial Phonepe multi-output classifier.
 
-# Calculate the total transaction sum for each account
-total_sum_df = result_df.groupBy("payer_account_number").agg(F.sum("payer_amount").alias("total_transaction_sum_paid_as_payer"))
+Step 3: Joining Aggregated DataFrames
+The aggregated DataFrames are joined to create a comprehensive DataFrame containing transaction details, counts, sums, and types for both category levels.
 
-# Calculate how many times each payer_account_number appears in payee_account_number and the sum of payee_amount
-appearance_df = result_df.groupBy("payee_account_number") \
-                         .agg(F.count("*").alias("as_a_payee_count"), 
-                              F.sum("payee_amount").alias("as_a_payee_sum_recieved"))
+Step 4: Calculating Total Transaction Sum
+The total sum of all transactions where the account acted as a payer is calculated and added to the final DataFrame.
 
-# Join with unique account details 
-unique_account_details = result_df.select("payer_account_number", "account_holder_name", "account_ifsc", "payer_account_type","payee_account_type","payer_account_type").distinct()
-final_df = unique_account_details.join(final_agg_df, ["payer_account_number", "payer_account_type"], "left") \
-                                 .join(total_sum_df, ["payer_account_number"], "left") \
-                                 .join(appearance_df, unique_account_details.payer_account_number == appearance_df.payee_account_number, "left") \
-                                 .drop("payee_account_number") \
-                                 .fillna(0)
+Step 5: Calculating Appearance as Payee
+The model calculates how many times each account appears as a payee and the total sum received when acting as a payee.
 
-# Display the result
-final_df.show()
+Step 6: Joining with Unique Account Details
+All the calculated metrics and aggregates are joined with the unique account details to create a final DataFrame. This DataFrame provides a holistic view of each account’s transaction behavior, including details like the account holder's name and IFSC code.
+
+Step 7: Handling Null Values
+Any null values in the final DataFrame are filled with zeros to ensure data consistency and readability.
+
+Step 8: Displaying the Result
+The final DataFrame is displayed, offering detailed insights into each account’s transaction patterns, amounts, and categories.
+
+In Layman’s Terms
+Imagine a detailed ledger that records every transaction made by different bank accounts. However, this ledger is complex and not easy to understand at a glance. This ML model is like a smart assistant that reads through the ledger, organizes the information in a simpler, more understandable manner, and even rates the transaction volumes.
+
+It calculates:
+
+How much money was spent in different spending categories.
+How many transactions were made in each category.
+A rating (from 1 to 10) indicating the volume of spending in each category, with different scales for savings and current accounts.
+The total money spent as a payer and received as a payee.
+All this information is then compiled into a neat table, making it easy to analyze and understand the spending and receiving patterns of each account.
+
+Conclusion
+This ML model transforms complex transaction data into actionable insights, aiding in informed decision-making for financial planning, analysis, or any other relevant purposes. Every piece of information is meticulously calculated and presented, ensuring a comprehensive understanding of each account's financial behavior.
